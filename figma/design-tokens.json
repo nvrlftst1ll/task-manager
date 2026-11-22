@@ -1,0 +1,191 @@
+{
+  "$description": "Task Manager — дизайн-токены, извлечённые 1:1 из src/styles/global.css. Наборы light и dark соответствуют темам приложения, core — общие размеры и типографика. Импорт: плагин Tokens Studio for Figma → вкладка Tokens → Settings (шестерёнка) → Import → выбрать этот файл.",
+  "light": {
+    "$description": "Светлая тема приложения (data-theme=light)",
+    "$themes": [
+      {
+        "label": "Light",
+        "selectedTokenSets": { "light": "source", "core": "source" }
+      }
+    ],
+    "color": {
+      "$description": "Палитра светлой темы",
+      "bg": { "value": "#f1f5f9", "type": "color", "$description": "Фон приложения" },
+      "bgDeep": { "value": "#e2e8f0", "type": "color", "$description": "Глубокий фон (hover, чип низкого приоритета)" },
+      "panel": { "value": "#ffffff", "type": "color", "$description": "Панели, карточки, инпуты" },
+      "panelAlt": { "value": "#f8fafc", "type": "color", "$description": "Фон колонок канбана, сегменты" },
+      "border": { "value": "#e2e8f0", "type": "color" },
+      "borderStrong": { "value": "#cbd5e1", "type": "color", "$description": "Границы инпутов и кнопок" },
+      "text": { "value": "#0f172a", "type": "color" },
+      "textMuted": { "value": "#64748b", "type": "color" },
+      "accent": { "value": "#059669", "type": "color", "$description": "Основной изумрудный" },
+      "accentStrong": { "value": "#047857", "type": "color", "$description": "Hover основного, success-тост" },
+      "accentSoft": { "value": "#d1fae5", "type": "color", "$description": "Мягкая подложка акцента, теги" },
+      "warn": { "value": "#d97706", "type": "color", "$description": "Янтарный: средний приоритет, In Progress" },
+      "warnSoft": { "value": "#fef3c7", "type": "color" },
+      "danger": { "value": "#dc2626", "type": "color", "$description": "Красный: высокий приоритет, просрочки" },
+      "dangerStrong": { "value": "#b91c1c", "type": "color" },
+      "dangerSoft": { "value": "#fee2e2", "type": "color" },
+      "titlebar": { "value": "#ffffff", "type": "color", "$description": "Кастомный title bar" },
+      "overlay": { "value": "rgba(15,23,42,0.45)", "type": "color", "$description": "Затемнение под модалками" },
+      "toastInfo": { "value": "#334155", "type": "color" },
+      "status": {
+        "todo": { "value": "#64748b", "type": "color" },
+        "inProgress": { "value": "#d97706", "type": "color" },
+        "done": { "value": "#059669", "type": "color" }
+      }
+    },
+    "shadow": {
+      "card": {
+        "value": [
+          { "color": "rgba(15,23,42,0.08)", "type": "dropShadow", "x": 0, "y": 1, "blur": 3, "spread": 0 }
+        ],
+        "type": "boxShadow"
+      },
+      "modal": {
+        "value": [
+          { "color": "rgba(15,23,42,0.14)", "type": "dropShadow", "x": 0, "y": 10, "blur": 30, "spread": 0 }
+        ],
+        "type": "boxShadow"
+      }
+    }
+  },
+  "dark": {
+    "$description": "Тёмная тема приложения (data-theme=dark)",
+    "$themes": [
+      {
+        "label": "Dark",
+        "selectedTokenSets": { "dark": "source", "core": "source" }
+      }
+    ],
+    "color": {
+      "$description": "Палитра тёмной темы",
+      "bg": { "value": "#0f172a", "type": "color" },
+      "bgDeep": { "value": "#0b1220", "type": "color" },
+      "panel": { "value": "#1e293b", "type": "color" },
+      "panelAlt": { "value": "#16202f", "type": "color" },
+      "border": { "value": "#334155", "type": "color" },
+      "borderStrong": { "value": "#475569", "type": "color" },
+      "text": { "value": "#e2e8f0", "type": "color" },
+      "textMuted": { "value": "#94a3b8", "type": "color" },
+      "accent": { "value": "#10b981", "type": "color" },
+      "accentStrong": { "value": "#34d399", "type": "color", "$description": "В тёмной теме текст primary-кнопки — #052e21" },
+      "accentSoft": { "value": "#064e3b", "type": "color" },
+      "warn": { "value": "#f59e0b", "type": "color" },
+      "warnSoft": { "value": "#451a03", "type": "color" },
+      "danger": { "value": "#f87171", "type": "color" },
+      "dangerStrong": { "value": "#ef4444", "type": "color" },
+      "dangerSoft": { "value": "#450a0a", "type": "color" },
+      "titlebar": { "value": "#141d2e", "type": "color" },
+      "overlay": { "value": "rgba(2,6,23,0.65)", "type": "color" },
+      "toastInfo": { "value": "#334155", "type": "color" },
+      "status": {
+        "todo": { "value": "#94a3b8", "type": "color" },
+        "inProgress": { "value": "#f59e0b", "type": "color" },
+        "done": { "value": "#10b981", "type": "color" }
+      }
+    },
+    "shadow": {
+      "card": {
+        "value": [
+          { "color": "rgba(0,0,0,0.4)", "type": "dropShadow", "x": 0, "y": 1, "blur": 3, "spread": 0 }
+        ],
+        "type": "boxShadow"
+      },
+      "modal": {
+        "value": [
+          { "color": "rgba(0,0,0,0.55)", "type": "dropShadow", "x": 0, "y": 10, "blur": 30, "spread": 0 }
+        ],
+        "type": "boxShadow"
+      }
+    }
+  },
+  "core": {
+    "$description": "Общие токены: радиусы, отступы, типографика, размеры контролов",
+    "borderRadius": {
+      "xs": { "value": 6, "type": "borderRadius" },
+      "sm": { "value": 8, "type": "borderRadius" },
+      "md": { "value": 10, "type": "borderRadius", "$description": "Карточки задач, поиск, модалки сообщений" },
+      "btn": { "value": 9, "type": "borderRadius" },
+      "lg": { "value": 12, "type": "borderRadius", "$description": "Колонки канбана, секции настроек" },
+      "xl": { "value": 16, "type": "borderRadius", "$description": "Модальные окна" },
+      "pill": { "value": 999, "type": "borderRadius", "$description": "Чипы, теги, счётчики" }
+    },
+    "spacing": {
+      "xs": { "value": 4, "type": "spacing" },
+      "sm": { "value": 8, "type": "spacing" },
+      "md": { "value": 12, "type": "spacing" },
+      "lg": { "value": 16, "type": "spacing" },
+      "xl": { "value": 24, "type": "spacing" }
+    },
+    "size": {
+      "titlebarH": { "value": 40, "type": "sizing" },
+      "inputH": { "value": 38, "type": "sizing" },
+      "selectH": { "value": 32, "type": "sizing" },
+      "btnPadX": { "value": 14, "type": "sizing" },
+      "btnPadY": { "value": 8, "type": "sizing" },
+      "switchW": { "value": 40, "type": "sizing" },
+      "switchH": { "value": 22, "type": "sizing" },
+      "screenW": { "value": 1440, "type": "sizing", "$description": "Ширина макетов (desktop)" },
+      "screenH": { "value": 900, "type": "sizing" }
+    },
+    "fontFamilies": {
+      "ui": { "value": "Segoe UI", "type": "fontFamilies", "$description": "В Figma заменяется на Inter/Roboto" },
+      "mono": { "value": "Cascadia Code", "type": "fontFamilies", "$description": "kbd-плашки горячих клавиш" }
+    },
+    "fontSizes": {
+      "chip": { "value": 10.5, "type": "fontSizes" },
+      "tag": { "value": 11, "type": "fontSizes" },
+      "caption": { "value": 12, "type": "fontSizes" },
+      "body-sm": { "value": 12.5, "type": "fontSizes" },
+      "body": { "value": 13, "type": "fontSizes" },
+      "body-md": { "value": 13.5, "type": "fontSizes" },
+      "body-lg": { "value": 14, "type": "fontSizes" },
+      "heading-sm": { "value": 15, "type": "fontSizes" },
+      "heading-md": { "value": 17, "type": "fontSizes" },
+      "heading-lg": { "value": 18, "type": "fontSizes" }
+    },
+    "fontWeights": {
+      "regular": { "value": "400", "type": "fontWeights" },
+      "medium": { "value": "500", "type": "fontWeights" },
+      "semibold": { "value": "600", "type": "fontWeights" },
+      "bold": { "value": "700", "type": "fontWeights" }
+    },
+    "typography": {
+      "columnTitle": {
+        "value": {
+          "fontFamily": "{fontFamilies.ui}",
+          "fontWeight": "{fontWeights.bold}",
+          "fontSize": "{fontSizes.body}",
+          "textCase": "uppercase",
+          "letterSpacing": "0.3"
+        },
+        "type": "typography"
+      },
+      "cardTitle": {
+        "value": {
+          "fontFamily": "{fontFamilies.ui}",
+          "fontWeight": "{fontWeights.bold}",
+          "fontSize": "{fontSizes.body-md}"
+        },
+        "type": "typography"
+      },
+      "body": {
+        "value": {
+          "fontFamily": "{fontFamilies.ui}",
+          "fontWeight": "{fontWeights.regular}",
+          "fontSize": "{fontSizes.body}"
+        },
+        "type": "typography"
+      },
+      "button": {
+        "value": {
+          "fontFamily": "{fontFamilies.ui}",
+          "fontWeight": "{fontWeights.semibold}",
+          "fontSize": "{fontSizes.body}"
+        },
+        "type": "typography"
+      }
+    }
+  }
+}

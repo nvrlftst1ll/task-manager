@@ -141,3 +141,20 @@ Actions → Run workflow → включить «Собрать установщ�
 Все задачи и настройки хранятся в SQLite: `app.getPath('userData')/task-manager.db`
 (Windows: `%APPDATA%/task-manager`, macOS: `~/Library/Application Support/task-manager`,
 Linux: `~/.config/task-manager`). Экспорт в JSON — в настройках приложения.
+
+## Перенос дизайна в Figma
+
+Папка `figma/` — кит переноса дизайна в Figma. REST API Figma умеет
+только читать (создавать файлы и писать слои извне нельзя), поэтому
+запись оформлена плагином:
+
+- `plugin/` — плагин **Task Manager — Design Generator**: создайте новый
+  пустой файл Figma, подключите папку как плагин (Plugins → Development →
+  New Plugin) и запустите — он нарисует 7 экранов (доска light/dark,
+  модалки, настройки, онбординг, UI-кит) auto-layout'ом с токенами из
+  `global.css`; файл и станет отдельным файлом с дизайном;
+- `design-tokens.json` — токены в формате Tokens Studio (наборы
+  `light` / `dark` / `core`), импорт через плагин Tokens Studio;
+- для Части 1: `user-flow.html` импортируется плагином html.to.design.
+
+Пошаговая инструкция — в `figma/README.md`.
