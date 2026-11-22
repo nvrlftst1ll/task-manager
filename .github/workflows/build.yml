@@ -1,4 +1,4 @@
-name: "Build: Task Manager CI"
+name: Build Task Manager CI
 
 on:
   push:
