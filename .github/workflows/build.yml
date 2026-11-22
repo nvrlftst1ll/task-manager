@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: "Получение исходного кода"
@@ -16,7 +17,7 @@ jobs:
       - name: "Установка Node.js"
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       # Кэшируем node_modules по хэшу манифеста (package-lock
       # отсутствует в свежем проекте, поэтому ключ — package.json)
