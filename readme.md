@@ -99,9 +99,25 @@ task-manager/
 
 ## CI/CD
 
-`.github/workflows/build.yml`: на каждый push/PR в `main` — установка
-зависимостей с кэшированием, линтер, проверка типов, unit-тесты и сборка.
-Тесты идут строго до сборки: падение тестов останавливает пайплайн.
+`.github/workflows/build.yml` — пайплайн из шести задач (подробные
+комментарии — в самом файле):
+
+| Задача | Что делает | Когда |
+|---|---|---|
+| `quality` | ESLint → typecheck (renderer + electron) → unit-тесты | каждый push/PR в `main` |
+| `integration` | пересборка better-sqlite3 под Node → тесты репозиториев (in-memory SQLite) | каждый push/PR в `main` |
+| `build` | Vite (renderer) + esbuild (main), артефакт `app-dist` | после quality + integration |
+| `e2e` | Playwright запускает Electron в xvfb (CI-флаги `--no-sandbox --disable-gpu`) | после build |
+| `package` | electron-builder: AppImage / NSIS .exe / .dmg на матрице Linux–Windows–macOS | только по тегам `v*.*.*` |
+| `release` | черновик GitHub Release со всеми установщиками | после package |
+
+Нюансы: зависимости фиксирует `package-lock.json` (кэш — по его хэшу);
+там, где Electron не запускается, установка идёт с `--ignore-scripts`;
+нативный better-sqlite3 пересобирается под нужный ABI (Node — integration,
+Electron — e2e и упаковка); устаревшие прогоны отменяет concurrency-группа.
+
+Релиз: `git tag v1.1.0 && git push --tags` → три установщика появятся
+в черновике релиза, публикация — вручную.
 
 ## Файлы проекта (методология Based)
 

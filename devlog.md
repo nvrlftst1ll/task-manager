@@ -1,5 +1,40 @@
 # Devlog — Task Manager
 
+## [1.1.0] - 2026-11-22
+
+### Добавлено
+
+- CI развёрнут из одного job в полный пайплайн (`.github/workflows/build.yml`,
+  шесть задач):
+  - `quality`: ESLint → typecheck (два tsconfig) → unit-тесты;
+  - `integration`: `npm rebuild better-sqlite3` (ABI Node) → тесты
+    репозиториев на in-memory SQLite;
+  - `build`: Vite + esbuild, артефакт `app-dist` для переиспользования;
+  - `e2e`: Playwright + Electron в виртуальном дисплее xvfb, системные
+    библиотеки через `npx playwright install-deps`;
+  - `package` (только теги `v*.*.*`): матрица Linux/Windows/macOS →
+    AppImage / NSIS .exe / .dmg; macOS без подписи
+    (`CSC_IDENTITY_AUTO_DISCOVERY=false`);
+  - `release`: черновик GitHub Release со всеми установщиками
+    (softprops/action-gh-release, публикация вручную);
+  - кэши node_modules / Electron / electron-builder по хэшу
+    `package-lock.json`; concurrency-группа отменяет устаревшие прогоны;
+    таймауты на каждую задачу.
+- CI-режим main-процесса: при `CI=true` отключается аппаратное ускорение —
+  иначе Electron не отрисует окно в headless-дисплее.
+
+### Изменено
+
+- e2e-спека: единая точка запуска `launchApp()` c CI-аргументами
+  (`--no-sandbox --disable-gpu --disable-dev-shm-usage`); локальный запуск
+  не меняется.
+- `package-lock.json` закоммичен — CI ставит точные версии.
+
+### Проверено
+
+- Локально прогнан весь путь CI: typecheck 0/0, ESLint 0, unit 61/61,
+  integration 13/13, build успешен (testlog.md, раунд «CI-симуляция»).
+
 ## [1.0.0] - 2026-11-22
 
 ### Добавлено

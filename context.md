@@ -100,3 +100,33 @@ flowchart TD
 - Чистые модули (без electron/DOM): `electron/ipc/repositories.ts`,
   `src/lib/validation.ts`, `src/lib/filters.ts` — расширение логики лучше
   начинать здесь, оно автоматически попадёт под тесты.
+
+## CI/CD (`.github/workflows/build.yml`)
+
+```mermaid
+flowchart LR
+    Q["quality<br/>lint + typecheck + unit"] --> B["build<br/>Vite + esbuild<br/>артефакт app-dist"]
+    I["integration<br/>better-sqlite3 под Node"] --> B
+    B --> E["e2e<br/>Electron в xvfb<br/>(Playwright)"]
+    E --> P["package — только теги v*.*.*<br/>matrix: Linux / Windows / macOS"]
+    P --> R["release<br/>черновик GitHub Release<br/>со всеми установщиками"]
+```
+
+Ключевые решения пайплайна:
+
+- **Два ABI нативного модуля.** better-sqlite3 пересобирается под нужный
+  рантайм: `npm rebuild better-sqlite3` (Node, integration) или
+  `npx electron-builder install-app-deps` (Electron, e2e/упаковка). Там,
+  где Electron не запускается (quality/build), установка идёт с
+  `--ignore-scripts` — без скачивания бинарника (~100 МБ) и лишних сборок.
+- **Headless-e2e.** При `CI=true` main-процесс вызывает
+  `app.disableHardwareAcceleration()`, спека добавляет флаги
+  `--no-sandbox --disable-gpu --disable-dev-shm-usage`; рендеринг —
+  в виртуальном дисплее xvfb (1280x1024). Локальный запуск не меняется.
+- **Воспроизводимость и скорость.** `package-lock.json` закоммичен;
+  node_modules / Electron / electron-builder кэшируются по его хэшу;
+  concurrency-группа отменяет устаревшие прогоны; у каждого job — таймаут.
+- **Упаковка только по тегам.** `git tag v1.1.0 && git push --tags`
+  запускает матрицу: Linux → AppImage, Windows → NSIS .exe, macOS → .dmg
+  (без подписи: `CSC_IDENTITY_AUTO_DISCOVERY=false`); job release собирает
+  черновик GitHub Release — публикация вручную после проверки.

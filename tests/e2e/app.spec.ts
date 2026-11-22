@@ -2,14 +2,28 @@
 // [START: E2E-тесты (Playwright + Electron)]
 // Запускаются ЛОКАЛЬНО (нужен дисплей и собранное приложение):
 //   npm run test:e2e   (= npm run build && npx playwright test)
+// и НА CI (GitHub Actions, job e2e): приложение стартует в
+// виртуальном дисплее xvfb, при этом CI=true добавляет флаги
+// --no-sandbox / --disable-gpu (без них headless-запуск падает).
 // Покрытие: запуск, онбординг, создание задачи, поиск.
 // Drag & drop проверяется вручную (см. readme, раздел «Тесты»).
 // ============================================================
 import { test, expect } from '@playwright/test';
 import { _electron as electron } from 'playwright';
+import type { ElectronApplication } from 'playwright';
+
+// На CI Electron работает в xvfb: сандбокс и GPU недоступны
+const CI_ARGS = process.env.CI
+  ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+  : [];
+
+/** Единая точка запуска приложения для всех тестов. */
+async function launchApp(): Promise<ElectronApplication> {
+  return electron.launch({ args: ['.', ...CI_ARGS] });
+}
 
 test('приложение запускается и показывает кастомный title bar', async () => {
-  const app = await electron.launch({ args: ['.'] });
+  const app = await launchApp();
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
 
@@ -19,7 +33,7 @@ test('приложение запускается и показывает кас
 });
 
 test('онбординг (первый запуск) → создание задачи → карточка в To Do', async () => {
-  const app = await electron.launch({ args: ['.'] });
+  const app = await launchApp();
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
 
@@ -50,7 +64,7 @@ test('онбординг (первый запуск) → создание зад
 });
 
 test('поиск фильтрует доску', async () => {
-  const app = await electron.launch({ args: ['.'] });
+  const app = await launchApp();
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
 

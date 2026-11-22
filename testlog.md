@@ -25,6 +25,10 @@ E2E-тесты Playwright требуют дисплей и Electron-бинарн
 | 2026-11-22 | Manual (браузер) | renderer-приложение целиком | vite dev (браузерный режим, localStorage-фолбэк): онбординг → выбор темы → «Начать работу» → Ctrl+N → пустой сабмит → ошибка поля → заполнение (название + тег) → создание → Ctrl+F → поиск → клик по карточке → детали → смена статуса → Esc | каждый шаг отрабатывает, состояние переживает перезагрузку | всё подтверждено: ошибка валидации «Укажите название задачи», задача появилась в To Do, поиск оставил 2 карточки (совпадение в описании другой задачи — корректно), задача переехала в In Progress, данных в localStorage; ошибок консоли нет (agent-browser errors/console чисты) | PASS |
 | 2026-11-22 | Manual (браузер) | user-flow.html (Часть 1) | десктоп 1920px и мобильный 390px | читаемая схема; на <900px — одна колонка | VLM-проверка скриншота: ромбы читабельны, стрелки и слияния корректны, наложений нет; mobile: grid = 1 колонка, ветви column. Замечание по подписям обратных петель — исправлено («возврат к форме: …») | PASS |
 | 2026-11-22 | E2E | Playwright + Electron | `tests/e2e/app.spec.ts` | запуск приложения, онбординг, создание задачи, поиск | **не запускались в песочнице** (нет дисплея и Electron-бинарника); код готов к локальному запуску: `npm run test:e2e`; каналы сценариев дополнительно закрыты ручной браузерной проверкой renderer и integration-тестами SQL-слоя | LOCAL-ONLY |
+| 2026-11-22 | CI-конфиг | `.github/workflows/build.yml` | расширение из одного job до пайплайна из 6 задач (quality → integration → build → e2e/xvfb → package-матрица → release), валидация синтаксиса | YAML синтаксически корректен, схема задач согласована со скриптами package.json | PyYAML safe_load: OK; скрипты из workflow существуют (`lint`, `typecheck`, `test`, `build`) | PASS |
+| 2026-11-22 | CI-симуляция (раунд 1) | весь путь jobs quality + integration + build | `npm install --ignore-scripts` → `npm run typecheck` → `npm run lint` → `npm test` → `npm rebuild better-sqlite3` → `npx vitest run tests/integration` → `npm run build` | все шаги зелёные, как будет на CI | typecheck 0/0, ESLint 0, unit 61/61, integration 13/13; esbuild: main.js 25.2 kB + preload.js 1.3 kB; vite: 72 модуля, js 224.04 kB (gzip 72.89), css 16.25 kB | PASS |
+| 2026-11-22 | CI-симуляция (раунд 2) | smoke нативного модуля | `node -e` с require('better-sqlite3') после `npm rebuild` | модуль загружается под текущий Node | `:memory:` + CREATE/INSERT/SELECT — ок | PASS |
+| 2026-11-22 | E2E (CI-режим) | `tests/e2e/app.spec.ts` + `electron/main.ts` | запуск с `CI=true`: флаги `--no-sandbox --disable-gpu --disable-dev-shm-usage` + `app.disableHardwareAcceleration()` | headless-запуск Electron в xvfb становится возможным | спека собирается (typecheck/lint зелёные); фактический прогон выполнят jobs e2e/package на GitHub Actions — в песочнице нет дисплея и Electron-бинарника | CI-READY |
 
 ## Итог
 
@@ -35,3 +39,6 @@ E2E-тесты Playwright требуют дисплей и Electron-бинарн
 - Прод-сборка renderer и main-процесса: успешна.
 - Ручная браузерная проверка UI: все шаги зелёные, консоль чистая.
 - E2E Playwright: написаны, требуют локального запуска (см. readme).
+- CI: полный путь quality → integration → build подтверждён локально;
+  e2e (xvfb) и упаковка (матрица ОС) настроены на GitHub Actions
+  (см. context.md, раздел CI/CD).

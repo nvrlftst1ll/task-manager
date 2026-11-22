@@ -62,3 +62,28 @@
 feat: task-manager v1.0.0 — Electron + React 18 + TS (канбан, dnd, темы, SQLite IPC, уведомления) + user-flow.html (Часть 1) + документация Based + тесты + CI
 
 Дальнейшие улучшения: подзадачи/чеклисты; рекуррентные задачи; синхронизация и облако; трей + глобальные хоткеи + автозапуск; календарный вид; статистика продуктивности; вложения; сортировка вручную внутри колонок (dnd-kit/sortable); перенос тегов в отдельную таблицу с поиском по LIKE/GIN; мультиязычность.
+
+## 2026-11-22 22:17 (Europe/Moscow)
+
+### Пользователь
+
+допиши CI
+
+### Агент
+
+CI развёрнут из одного job в пайплайн из шести задач (`.github/workflows/build.yml`, ~330 строк с комментариями):
+
+- `quality` — ESLint → typecheck (renderer + electron) → unit-тесты; установка с `--ignore-scripts` (Electron не запускается — не качаем ~100 МБ);
+- `integration` — `npm rebuild better-sqlite3` (ABI Node) → 13 тестов репозиториев на in-memory SQLite;
+- `build` — Vite + esbuild, артефакт `app-dist` (переиспользуется в e2e);
+- `e2e` — скачивание бинарника Electron (`node install.js`), `electron-builder install-app-deps` (ABI Electron), xvfb + `npx playwright install-deps chromium`, прогон Playwright в виртуальном дисплее 1280x1024;
+- `package` (только теги `v*.*.*`) — матрица ubuntu/windows/macos → AppImage / NSIS .exe / .dmg, полная установка со скриптами, кэши electron/electron-builder, `CSC_IDENTITY_AUTO_DISCOVERY=false` для неподписанного mac;
+- `release` — черновик GitHub Release (softprops/action-gh-release) со всеми установщиками, публикация вручную.
+
+Кросс-платформенные нюансы: два ABI нативного better-sqlite3 (Node для integration, Electron для e2e/упаковки) — пересборка явными шагами; concurrency-группа отменяет устаревшие прогоны; таймауты на каждый job; кэш node_modules по хэшу package-lock.json (файл закоммичен, версии детерминированы).
+
+CI-режим приложения: при `CI=true` main-процесс вызывает `app.disableHardwareAcceleration()` (headless-рендеринг), e2e-спека переведена на единую `launchApp()` с флагами `--no-sandbox --disable-gpu --disable-dev-shm-usage`; локальный запуск не меняется.
+
+Проверено: YAML валиден (PyYAML); весь путь CI прогнан локально — typecheck 0/0, ESLint 0, unit 61/61, integration 13/13 (после пересборки нативного модуля), build успешен (main.js 25.2 kB, preload.js 1.3 kB, vite 72 модуля). Фактические e2e и упаковка выполнятся на GitHub Actions — в песочнице нет дисплея и Electron-бинарника.
+
+Документация синхронизирована: readme (таблица CI/CD), context.md (Mermaid-схема пайплайна), devlog [1.1.0], testlog (раунды «CI-конфиг», «CI-симуляция», «E2E CI-режим»), версия поднята до 1.1.0, package-lock синхронизирован, ZIP пересобран.

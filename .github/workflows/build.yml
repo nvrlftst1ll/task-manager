@@ -1,49 +1,347 @@
-name: Build Task Manager CI
+# ============================================================
+# CI/CD — Task Manager (Electron + React + Vite + better-sqlite3)
+#
+# Пайплайн (6 задач):
+#
+#   quality ──┐
+#             ├─→ build ──→ e2e ──┐
+#   integration ┘                ├─→ package (matrix: linux/win/mac,
+#                                │     только по тегам v*.*.*) ──→ release
+#                                └────────────────────────────────┘
+#
+#   1. quality     — ESLint, typecheck (2 tsconfig), unit-тесты;
+#   2. integration — SQLite-репозитории поверх настоящего better-sqlite3;
+#   3. build       — сборка renderer (Vite) и main (esbuild) + артефакт;
+#   4. e2e         — Playwright запускает Electron в xvfb (headless CI);
+#   5. package     — electron-builder: AppImage / NSIS .exe / .dmg
+#                    по тегу vX.Y.Z на трёх ОС;
+#   6. release     — черновик GitHub Release с приложенными установщиками.
+#
+# Нюансы, учтённые в конфигурации:
+#   - package-lock.json закоммичен → `npm install` ставит точные версии;
+#   - там, где Electron не запускается (quality/integration/build),
+#     установка идёт с --ignore-scripts: не тратим время на скачивание
+#     бинарника Electron (~100 МБ) и пересборку нативных модулей;
+#   - better-sqlite3 — нативный модуль с двумя ABI:
+#       * под Node      → integration-тесты (npm rebuild);
+#       * под Electron  → e2e и упаковка (electron-builder install-app-deps);
+#   - у проекта нет lockfile-кэша setup-node, поэтому node_modules
+#     кэшируется вручную по хэшу package-lock.json.
+# ============================================================
+
+name: "Task Manager CI"
 
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"] # тег запускает packaging + release
   pull_request:
     branches: [main]
+  workflow_dispatch: # ручной запуск из вкладки Actions
+
+# Новый push в ту же ветку/PR отменяет устаревший прогон
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
 
 jobs:
-  build:
-    name: Build
+  # ── 1/6. Качество кода: линтер, типы, unit-тесты ─────────────────────
+  quality:
+    name: "Quality (lint + typecheck + unit)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: "Получение исходного кода"
+      - name: Получение исходного кода
         uses: actions/checkout@v4
 
-      - name: "Установка Node.js"
+      - name: Установка Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
-      # Кэшируем node_modules по хэшу манифеста (package-lock
-      # отсутствует в свежем проекте, поэтому ключ — package.json)
-      - name: "Кэширование зависимостей"
+      - name: Кэширование node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             node-modules-${{ runner.os }}-
 
-      - name: "Установка зависимостей"
-        run: npm install
+      # Electron здесь не запускается → пропускаем постустановку
+      # (скачивание бинарника Electron и пересборку нативных модулей)
+      - name: Установка зависимостей
+        run: npm install --ignore-scripts --no-audit --no-fund
 
-      # Тесты запускаются ДО сборки: падение тестов останавливает пайплайн
-      - name: "Линтер"
+      # Падение любого шага останавливает пайплайн
+      - name: Линтер (ESLint)
         run: npm run lint
 
-      - name: "Проверка типов"
+      - name: Проверка типов (renderer + electron)
         run: npm run typecheck
 
-      - name: "Unit-тесты (Vitest)"
+      - name: Unit-тесты (Vitest)
         run: npm test
 
-      - name: "Сборка renderer (Vite)"
-        run: npx vite build
+  # ── 2/6. Integration: настоящий SQLite в памяти ──────────────────────
+  integration:
+    name: "Integration (better-sqlite3)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
 
-      - name: "Компиляция main-процесса (esbuild)"
-        run: npm run compile:electron
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Кэширование node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Установка зависимостей
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      # better-sqlite3 собран под Electron? Нет: из-за --ignore-scripts его
+      # install-скрипт (prebuild-install) не выполнялся. Пересобираем под
+      # текущий Node — prebuild-бинарник скачается автоматически.
+      - name: Сборка better-sqlite3 под Node
+        run: npm rebuild better-sqlite3
+
+      # Отдельно от `npm test`: integration-тесты работают с настоящим
+      # нативным модулем, unit — чистые функции (см. задачу quality)
+      - name: Integration-тесты (in-memory SQLite)
+        run: npx vitest run tests/integration --reporter verbose
+
+  # ── 3/6. Сборка: renderer (Vite) + main-процесс (esbuild) ────────────
+  build:
+    name: "Build (Vite + esbuild)"
+    needs: [quality, integration] # не собираем сломанный код
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Кэширование node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Установка зависимостей
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      # package.json: build = compile:electron (esbuild) && vite build
+      - name: Сборка приложения
+        run: npm run build
+
+      # Артефакт переиспользует e2e-задача: не собираем одно и то же дважды
+      - name: Загрузка артефакта app-dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          retention-days: 7
+          path: |
+            dist/
+            dist-electron/
+
+  # ── 4/6. E2E: Playwright запускает Electron в виртуальном дисплее ────
+  e2e:
+    name: "E2E (Playwright + Electron, xvfb)"
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # По этой переменной main-процесс отключает GPU, а e2e-спека
+      # добавляет флаги --no-sandbox / --disable-gpu (headless-окружение)
+      CI: "true"
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Кэширование node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      # Кэш скачанных zip-архивов Electron (~/.cache/electron):
+      # install.js найдёт архив в кэше и не будет качать ~100 МБ заново
+      - name: Кэширование бинарника Electron
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Установка зависимостей
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      # Постустановка Electron была пропущена — запускаем его вручную:
+      # скрипт скачивает бинарник в node_modules/electron/dist
+      - name: Скачивание бинарника Electron
+        run: node node_modules/electron/install.js
+
+      # Пересборка better-sqlite3 под ABI Electron (приложение в e2e
+      # пишет в настоящую БД через IPC)
+      - name: Сборка better-sqlite3 под Electron
+        run: npx electron-builder install-app-deps
+
+      # Electron на headless-раннере: виртуальный дисплей + системные
+      # библиотеки Chromium (nss, atk, gbm, alsa, gtk ...)
+      - name: Установка xvfb и системных библиотек
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb
+          npx playwright install-deps chromium
+
+      # Берём готовую сборку из задачи build (без повторной сборки)
+      - name: Загрузка артефакта app-dist
+        uses: actions/download-artifact@v4
+        with:
+          name: app-dist
+
+      # Виртуальный дисплей 1280x1024: приложение реально рендерится,
+      # Playwright кликает по кнопкам, как пользователь
+      - name: E2E-тесты (Playwright Electron)
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" npx playwright test
+
+  # ── 5/6. Упаковка установщиков (только по тегам v*.*.*) ──────────────
+  package:
+    name: "Package (${{ matrix.os }} → ${{ matrix.target }})"
+    needs: [build, e2e] # пакеты собираем только после зелёного пайплайна
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false # mac не должна отменять win при падении
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: AppImage
+            artifact: release-linux
+            electron_cache: ~/.cache/electron
+            builder_cache: ~/.cache/electron-builder
+          - os: windows-latest
+            target: NSIS .exe
+            artifact: release-windows
+            electron_cache: ~\AppData\Local\electron\Cache
+            builder_cache: ~\AppData\Local\electron-builder\Cache
+          - os: macos-latest
+            target: .dmg
+            artifact: release-macos
+            electron_cache: ~/Library/Caches/electron
+            builder_cache: ~/Library/Caches/electron-builder
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      # macOS на CI без Apple-подписи: запрещаем автопоиск сертификата
+      # в keychain (иначе electron-builder падает с ошибкой доступа)
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Кэширование node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ matrix.os }}-
+
+      - name: Кэширование бинарника Electron
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.electron_cache }}
+          key: electron-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Кэширование кэша electron-builder
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.builder_cache }}
+          key: electron-builder-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Полная установка СО скриптами: постустановка (postinstall)
+      # запускает electron-builder install-app-deps, который пересобирает
+      # better-sqlite3 под ABI Electron текущей ОС
+      - name: Установка зависимостей (с пересборкой нативных модулей)
+        run: npm install --no-audit --no-fund
+
+      - name: Сборка приложения
+        run: npm run build
+
+      # Конфигурация упаковки — в package.json (секция "build"):
+      # targets nsis / dmg / AppImage, asarUnpack для user-flow.html
+      - name: Упаковка (electron-builder)
+        run: npx electron-builder --publish never
+
+      # Только установщики и файлы автообновления: без распакованных
+      # каталогов *-unpacked (сотни МБ)
+      - name: Загрузка артефакта ${{ matrix.artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            release/*.AppImage
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
+
+  # ── 6/6. Черновик GitHub Release со всеми установщиками ──────────────
+  release:
+    name: "GitHub Release (draft)"
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # нужно для создания релиза
+    steps:
+      # Сливаем артефакты трёх ОС в один каталог release/
+      - name: Загрузка установщиков из матрицы
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+
+      # Черновик: человек проверяет установщики и публикует вручную
+      - name: Создание черновика релиза
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: release/*
