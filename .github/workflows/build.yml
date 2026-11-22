@@ -1,0 +1,48 @@
+name: "Build: Task Manager CI"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Кэшируем node_modules по хэшу манифеста (package-lock
+      # отсутствует в свежем проекте, поэтому ключ — package.json)
+      - name: Кэширование зависимостей
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Установка зависимостей
+        run: npm install
+
+      # Тесты запускаются ДО сборки: падение тестов останавливает пайплайн
+      - name: Линтер
+        run: npm run lint
+
+      - name: Проверка типов
+        run: npm run typecheck
+
+      - name: Unit-тесты (Vitest)
+        run: npm test
+
+      - name: Сборка renderer (Vite)
+        run: npx vite build
+
+      - name: Компиляция main-процесса (esbuild)
+        run: npm run compile:electron

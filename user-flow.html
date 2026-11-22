@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="User Flow — Task Manager. Визуальная документация пользовательских сценариев кроссплатформенного менеджера задач. Чистый HTML + CSS, без JavaScript.">
+<title>User Flow — Task Manager</title>
+<style>
+/* ============================================================
+   USER FLOW — TASK MANAGER
+   Блок-схема пользовательских сценариев. Только HTML + CSS:
+   - прямоугольники       — экраны и действия пользователя
+   - ромбы (rotate 45deg) — точки принятия решений
+   - стрелки              — CSS-линии + border-треугольники (::after)
+   ============================================================ */
+
+/* ---------- Сброс и базовые переменные ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Цветовое кодирование (по требованию):
+     старт — зелёный, экраны — синий, решения — жёлтый/оранжевый,
+     ошибки — красный, финал — серый */
+  --c-start-1: #10b981;  --c-start-2: #059669;
+  --c-screen-1: #3b82f6; --c-screen-2: #2563eb;
+  --c-screen-bg: #eff6ff; --c-screen-border: #93c5fd; --c-screen-text: #1e40af;
+  --c-hub-1: #1d4ed8;    --c-hub-2: #1e3a8a;
+  --c-decision-1: #fbbf24; --c-decision-2: #f59e0b; --c-decision-text: #78350f;
+  --c-error-1: #ef4444;  --c-error-2: #dc2626;
+  --c-alt-bg: #f8fafc;   --c-alt-border: #94a3b8;  --c-alt-text: #475569;
+  --c-final-1: #64748b;  --c-final-2: #475569;
+  --c-line: #64748b;       /* сплошные линии основного потока */
+  --c-line-soft: #94a3b8;  /* пунктирные линии переходов */
+  --c-text: #0f172a;
+  --c-muted: #64748b;
+  --c-border: #e2e8f0;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--c-text);
+  background-color: #f6f8fb;
+  /* «Чертёжная» сетка-точки на фоне */
+  background-image: radial-gradient(#dbe3ee 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Шапка страницы ---------- */
+.page-header {
+  text-align: center;
+  padding: 44px 20px 10px;
+}
+
+.page-kicker {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #0f766e;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  padding: 5px 14px;
+  margin-bottom: 14px;
+}
+
+.page-header h1 {
+  font-size: clamp(26px, 4vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.page-sub {
+  max-width: 760px;
+  margin: 12px auto 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--c-muted);
+}
+
+/* ---------- Легенда ---------- */
+.legend {
+  max-width: 1560px;
+  margin: 26px auto 30px;
+  padding: 14px 22px;
+  background: #ffffff;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.legend-title {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  margin-right: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.legend-pair { display: flex; align-items: center; gap: 6px; }
+
+.swatch { width: 26px; height: 16px; border-radius: 5px; flex: none; }
+.swatch--start  { background: linear-gradient(135deg, var(--c-start-1), var(--c-start-2)); border-radius: 999px; }
+.swatch--screen { background: linear-gradient(135deg, var(--c-screen-1), var(--c-screen-2)); }
+.swatch--action { background: var(--c-screen-bg); border: 2px solid var(--c-screen-border); }
+.swatch--error  { background: linear-gradient(135deg, var(--c-error-1), var(--c-error-2)); }
+.swatch--final  { background: linear-gradient(135deg, var(--c-final-1), var(--c-final-2)); border-radius: 999px; }
+.swatch--alt    { background: var(--c-alt-bg); border: 2px solid var(--c-alt-border); }
+.swatch--decision {
+  width: 17px; height: 17px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--c-decision-1), var(--c-decision-2));
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+.legend-arrow {
+  position: relative;
+  width: 36px; height: 2px;
+  background: var(--c-line);
+  flex: none;
+}
+.legend-arrow::after {
+  content: "";
+  position: absolute;
+  right: -2px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid var(--c-line);
+}
+.legend-arrow--dashed {
+  background: repeating-linear-gradient(90deg, var(--c-line-soft) 0 5px, transparent 5px 10px);
+}
+.legend-arrow--dashed::after { border-left-color: var(--c-line-soft); }
+
+/* ---------- Сетка колонок-сценариев ---------- */
+.flow-grid {
+  flex: 1;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 0 28px 44px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 26px;
+  align-items: start;
+}
+
+.flow-column {
+  background-color: #fdfefe;
+  background-image: radial-gradient(#e8edf4 1px, transparent 1px);
+  background-size: 18px 18px;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 20px 14px 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 14px;
+  border-bottom: 1px dashed var(--c-border);
+  margin-bottom: 16px;
+}
+
+.col-num {
+  flex: none;
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.col-head h2 { font-size: 14px; line-height: 1.3; }
+
+/* ---------- Вход/выход сценария (связь с Главным экраном) ---------- */
+.entry, .exit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hub-chip {
+  border: 1.5px dashed var(--c-line-soft);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  padding: 5px 12px;
+  max-width: 100%;
+}
+
+.flow-note {
+  text-align: center;
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--c-muted);
+  line-height: 1.5;
+  padding: 6px 6px 0;
+}
+
+.mini-note {
+  align-self: center;
+  border: 1.5px dashed #c7d2e0;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--c-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  margin: 6px 0;
+}
+
+/* ---------- Блоки (прямоугольники) ---------- */
+.node {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.10);
+}
+
+.node .sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.88;
+  line-height: 1.35;
+}
+
+.node--start {
+  background: linear-gradient(135deg, var(--c-start-1), var(--c-start-2));
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 18px;
+}
+
+.node--screen {
+  background: linear-gradient(135deg, var(--c-screen-1), var(--c-screen-2));
+  color: #fff;
+}
+
+.node--action {
+  background: var(--c-screen-bg);
+  color: var(--c-screen-text);
+  border: 2px solid var(--c-screen-border);
+  box-shadow: none;
+}
+
+.node--error {
+  background: linear-gradient(135deg, var(--c-error-1), var(--c-error-2));
+  color: #fff;
+}
+
+.node--alt {
+  background: var(--c-alt-bg);
+  color: var(--c-alt-text);
+  border: 2px solid var(--c-alt-border);
+  box-shadow: none;
+}
+
+.node--final {
+  background: linear-gradient(135deg, var(--c-final-1), var(--c-final-2));
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 18px;
+}
+
+.node--hub {
+  background: linear-gradient(135deg, var(--c-hub-1), var(--c-hub-2));
+  color: #fff;
+  font-size: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.35);
+  max-width: 280px;
+}
+
+/* ---------- Ромбы (решения) ---------- */
+.decision {
+  position: relative;
+  width: 168px; height: 168px;
+  margin: 4px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decision-box {
+  width: 118px; height: 118px;
+  transform: rotate(45deg); /* повёрнутый квадрат — ромб */
+  background: linear-gradient(135deg, var(--c-decision-1), var(--c-decision-2));
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decision-box span {
+  transform: rotate(-45deg); /* компенсация поворота для текста */
+  max-width: 84px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--c-decision-text);
+}
+
+/* ---------- Вертикальные стрелки (CSS, без изображений) ---------- */
+.v-arrow {
+  position: relative;
+  width: 2px;
+  height: 36px;
+  margin: 0 auto;
+  background: var(--c-line);
+}
+
+/* Наконечник — border-треугольник, позиционируется абсолютно */
+.v-arrow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--c-line);
+}
+
+.v-arrow--slim { height: 22px; }
+
+.v-arrow--dashed {
+  background: repeating-linear-gradient(180deg, var(--c-line-soft) 0 5px, transparent 5px 10px);
+}
+.v-arrow--dashed::after { border-top-color: var(--c-line-soft); }
+
+.v-arrow--up::after {
+  bottom: auto;
+  top: -2px;
+  border-top: none;
+  border-bottom: 8px solid var(--c-line);
+}
+.v-arrow--up.v-arrow--dashed::after { border-bottom-color: var(--c-line-soft); }
+
+/* ---------- Ветвление после ромба (Да / Нет) ---------- */
+.branches {
+  display: flex;
+  width: 100%;
+  margin-top: -2px;
+}
+
+.branch {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+  position: relative;
+}
+
+/* Углы-колена: горизонтальный участок + вертикальный спуск.
+   Левая ветвь («Да») уходит влево-вниз, правая («Нет») — вправо-вниз. */
+.corner {
+  position: relative;
+  flex: none;
+  height: 28px;
+  width: calc(50% + 8px);
+}
+
+.corner--l {
+  align-self: flex-end;
+  margin-right: -8px;
+  border-top: 2px solid var(--c-line);
+  border-left: 2px solid var(--c-line);
+  border-top-left-radius: 12px;
+}
+
+.corner--r {
+  align-self: flex-start;
+  margin-left: -8px;
+  border-top: 2px solid var(--c-line);
+  border-right: 2px solid var(--c-line);
+  border-top-right-radius: 12px;
+}
+
+.corner::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--c-line);
+}
+.corner--l::after { left: -5px; }
+.corner--r::after { right: -5px; }
+
+/* Метки ветвей */
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tag--yes { background: #d1fae5; color: #065f46; }
+.tag--no  { background: #fee2e2; color: #991b1b; }
+
+.branch .tag { position: absolute; top: 7px; z-index: 2; }
+.branch--yes .tag { right: 20%; }
+.branch--no  .tag { left: 20%; }
+
+/* Вертикальная «капля» до слияния: тянется на высоту соседней ветви */
+.drop {
+  flex: 1 1 auto;
+  min-height: 14px;
+  width: 2px;
+  background: var(--c-line);
+}
+
+/* ---------- Слияние ветвей обратно в основной поток ---------- */
+.merge {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  margin-top: -2px;
+}
+
+.merge::before { /* горизонтальная перемычка между осями ветвей */
+  content: "";
+  position: absolute;
+  top: 0; left: 25%; right: 25%;
+  border-top: 2px solid var(--c-line);
+}
+
+.merge::after { /* вертикальный спуск из центра перемычки */
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  margin-left: -1px;
+  width: 2px; height: 100%;
+  background: var(--c-line);
+}
+
+.merge .ah { /* наконечник слияния */
+  position: absolute;
+  bottom: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--c-line);
+}
+
+/* ---------- Обратная петля (возврат к форме при ошибке) ---------- */
+.loopback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.loop-label {
+  font-size: 10.5px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--c-muted);
+  text-align: center;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+/* ---------- Подвал страницы ---------- */
+.page-footer {
+  border-top: 1px solid var(--c-border);
+  background: #fff;
+  padding: 16px 24px 20px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--c-muted);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   АДАПТИВНОСТЬ
+   При ширине < 900px колонки перестраиваются в вертикальный
+   стек, а ветви решений складываются друг под друга.
+   ============================================================ */
+@media (max-width: 1280px) {
+  .flow-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1080px) {
+  .flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 899px) {
+  .flow-grid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 36px;
+  }
+
+  .branches {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Колено превращается в обычную короткую вертикальную стрелку */
+  .corner {
+    width: 2px;
+    height: 26px;
+    margin: 0;
+    border: none;
+    border-left: 2px solid var(--c-line);
+    border-radius: 0;
+    align-self: center;
+    order: 2;
+  }
+  .corner--r { margin-left: 0; }
+  .corner--l { margin-right: 0; }
+  .corner--r::after { right: auto; left: -5px; }
+
+  /* Метка Да/Нет встаёт над стрелкой, в общий поток */
+  .branch .tag {
+    position: static;
+    order: 1;
+    margin-bottom: 6px;
+  }
+
+  .node { max-width: 320px; }
+  .legend { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== ШАПКА ==================== -->
+<header class="page-header">
+  <p class="page-kicker">Часть 1 · Визуальная документация</p>
+  <h1>User Flow — Task Manager</h1>
+  <p class="page-sub">
+    Полный путь пользователя в кроссплатформенном менеджере задач (Electron + React + TypeScript):
+    от запуска приложения до выхода. Схема соответствует функциональности приложения из Части 2.
+  </p>
+</header>
+
+<!-- ==================== ЛЕГЕНДА ==================== -->
+<section class="legend" aria-label="Легенда: цвета и формы">
+  <span class="legend-title">Легенда</span>
+  <span class="legend-item"><span class="swatch swatch--start"></span>Старт</span>
+  <span class="legend-item"><span class="swatch swatch--screen"></span>Экран приложения</span>
+  <span class="legend-item"><span class="swatch swatch--action"></span>Действие пользователя</span>
+  <span class="legend-item"><span class="swatch swatch--decision"></span>Решение</span>
+  <span class="legend-item"><span class="swatch swatch--error"></span>Ошибка</span>
+  <span class="legend-item"><span class="swatch swatch--alt"></span>Нейтральный исход</span>
+  <span class="legend-item"><span class="swatch swatch--final"></span>Финал</span>
+  <span class="legend-item"><span class="legend-arrow"></span>основной поток</span>
+  <span class="legend-item"><span class="legend-arrow legend-arrow--dashed"></span>переход между сценариями</span>
+  <span class="legend-item legend-pair">
+    <span class="tag tag--yes">Да</span>
+    <span class="tag tag--no">Нет</span>
+    ветви решений
+  </span>
+</section>
+
+<!-- ==================== СХЕМА: 8 КОЛОНОК-СЦЕНАРИЕВ ==================== -->
+<main class="flow-grid">
+
+  <!-- ========== 1. Запуск и онбординг ========== -->
+  <section class="flow-column" aria-label="Сценарий 1: запуск и онбординг">
+    <div class="col-head"><span class="col-num">1</span><h2>Запуск и онбординг</h2></div>
+
+    <div class="node node--start">Запуск приложения<small class="sub">Electron: main-процесс · создание окна</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--screen">Загрузка данных<small class="sub">SQLite: список задач + настройки</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Первый запуск?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Онбординг<small class="sub">приветствие · выбор темы · подсказки интерфейса</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--action">Пропуск онбординга<small class="sub">сразу к сохранённым задачам</small></div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="node node--hub">ГЛАВНЫЙ ЭКРАН<small class="sub">Канбан-доска: To Do · In Progress · Done</small></div>
+    <p class="flow-note">отсюда начинаются все сценарии 2–8</p>
+  </section>
+
+  <!-- ========== 2. Создание задачи ========== -->
+  <section class="flow-column" aria-label="Сценарий 2: создание задачи">
+    <div class="col-head"><span class="col-num">2</span><h2>Создание задачи</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · Ctrl+N или кнопка «+ Новая задача»</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--screen">Форма задачи<small class="sub">название · описание · дедлайн · приоритет · теги</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Валидация пройдена?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Сохранение задачи<small class="sub">IPC-мост · main-процесс · SQLite</small></div>
+        <div class="v-arrow v-arrow--slim"></div>
+        <div class="node node--action">Карточка в колонке To Do<small class="sub">доска обновляется сразу</small></div>
+        <div class="exit">
+          <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+          <span class="hub-chip">возврат на Главный экран</span>
+        </div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--error">Ошибка валидации<small class="sub">пустое название · дедлайн в прошлом</small></div>
+        <div class="loopback">
+          <div class="v-arrow v-arrow--dashed v-arrow--up v-arrow--slim"></div>
+          <span class="loop-label">возврат к форме: исправить поля</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 3. Редактирование задачи ========== -->
+  <section class="flow-column" aria-label="Сценарий 3: редактирование задачи">
+    <div class="col-head"><span class="col-num">3</span><h2>Редактирование задачи</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · клик по карточке задачи</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--screen">Детали задачи<small class="sub">просмотр всех полей и статуса</small></div>
+    <div class="mini-note">Esc — закрыть без изменений</div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--action">Изменение полей<small class="sub">название · описание · дедлайн · приоритет · теги</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Валидация пройдена?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Обновление в БД<small class="sub">IPC · main · SQLite</small></div>
+        <div class="v-arrow v-arrow--slim"></div>
+        <div class="node node--action">Карточка обновлена<small class="sub">доска перерисовывается</small></div>
+        <div class="exit">
+          <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+          <span class="hub-chip">возврат на Главный экран</span>
+        </div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--error">Изменения отклонены<small class="sub">подсветка некорректных полей</small></div>
+        <div class="loopback">
+          <div class="v-arrow v-arrow--dashed v-arrow--up v-arrow--slim"></div>
+          <span class="loop-label">возврат к форме: исправить и сохранить</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 4. Изменение статуса ========== -->
+  <section class="flow-column" aria-label="Сценарий 4: изменение статуса задачи">
+    <div class="col-head"><span class="col-num">4</span><h2>Изменение статуса</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · drag &amp; drop карточки или кнопки статуса</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--action">Задача в статусе «To Do»</div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Работа начата?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Перенос в «In Progress»<small class="sub">dnd-kit · dragEnd</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--alt">Остаётся в «To Do»</div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="decision"><div class="decision-box"><span>Работа завершена?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Перенос в «Done»<small class="sub">задача закрыта</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--alt">Остаётся в «In Progress»</div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="node node--action">Сохранение статуса<small class="sub">IPC · SQLite · счётчики колонок</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Дедлайн близко?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--action">Системное уведомление<small class="sub">Electron Notification · порог из настроек</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--alt">Уведомление не требуется</div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="exit">
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+      <span class="hub-chip">возврат на Главный экран</span>
+    </div>
+  </section>
+
+  <!-- ========== 5. Удаление задачи ========== -->
+  <section class="flow-column" aria-label="Сценарий 5: удаление задачи">
+    <div class="col-head"><span class="col-num">5</span><h2>Удаление задачи</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · «Удалить» в меню карточки</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--screen">Диалог подтверждения<small class="sub">«Удалить задачу?» · Удалить / Отмена</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Подтверждено?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--screen">Удаление из БД<small class="sub">IPC · main · SQLite</small></div>
+        <div class="v-arrow v-arrow--slim"></div>
+        <div class="node node--action">Карточка исчезает с доски</div>
+        <div class="exit">
+          <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+          <span class="hub-chip">возврат на Главный экран</span>
+        </div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--action">Отмена удаления<small class="sub">карточка остаётся на месте</small></div>
+        <div class="exit">
+          <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+          <span class="hub-chip">возврат на Главный экран</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 6. Поиск и фильтрация ========== -->
+  <section class="flow-column" aria-label="Сценарий 6: поиск и фильтрация">
+    <div class="col-head"><span class="col-num">6</span><h2>Поиск и фильтрация</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · Ctrl+F или клик в поле поиска</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--screen">Панель поиска<small class="sub">текст · статус · приоритет · теги · дата</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="decision"><div class="decision-box"><span>Есть совпадения?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--action">Отфильтрованная доска<small class="sub">фильтрация в реальном времени</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--error">Ничего не найдено<small class="sub">предложение сбросить фильтры</small></div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="decision"><div class="decision-box"><span>Сбросить фильтры?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--action">Показать все задачи<small class="sub">доска в исходном виде</small></div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--alt">Фильтры остаются<small class="sub">доска отфильтрована</small></div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="exit">
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+      <span class="hub-chip">возврат на Главный экран</span>
+    </div>
+  </section>
+
+  <!-- ========== 7. Настройки ========== -->
+  <section class="flow-column" aria-label="Сценарий 7: настройки">
+    <div class="col-head"><span class="col-num">7</span><h2>Настройки</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">из Главного экрана · Ctrl+, или меню Edit → Settings</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="node node--screen">Экран настроек<small class="sub">Тема · Уведомления · Горячие клавиши</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--action">Тема оформления<small class="sub">светлая / тёмная / системная · применяется мгновенно</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--action">Уведомления дедлайнов<small class="sub">вкл/выкл · порог 1–24 часа</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--action">Горячие клавиши<small class="sub">Ctrl+N · Ctrl+F · Ctrl+,</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--screen">Сохранение настроек<small class="sub">SQLite · применяются сразу</small></div>
+
+    <div class="exit">
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+      <span class="hub-chip">возврат на Главный экран</span>
+    </div>
+  </section>
+
+  <!-- ========== 8. Выход из приложения ========== -->
+  <section class="flow-column" aria-label="Сценарий 8: выход из приложения">
+    <div class="col-head"><span class="col-num">8</span><h2>Выход из приложения</h2></div>
+
+    <div class="entry">
+      <span class="hub-chip">меню File → Quit или кнопка закрытия окна</span>
+      <div class="v-arrow v-arrow--dashed v-arrow--slim"></div>
+    </div>
+
+    <div class="decision"><div class="decision-box"><span>Данные сохранены?</span></div></div>
+
+    <div class="branches">
+      <div class="branch branch--yes">
+        <div class="corner corner--l"></div>
+        <span class="tag tag--yes">Да</span>
+        <div class="node node--alt">База данных актуальна</div>
+        <div class="drop"></div>
+      </div>
+      <div class="branch branch--no">
+        <div class="corner corner--r"></div>
+        <span class="tag tag--no">Нет</span>
+        <div class="node node--screen">Автосохранение<small class="sub">дозапись буферов в SQLite</small></div>
+        <div class="drop"></div>
+      </div>
+    </div>
+    <div class="merge"><span class="ah"></span></div>
+
+    <div class="node node--action">Закрытие окна и процессов<small class="sub">renderer → main → app.quit()</small></div>
+    <div class="v-arrow"></div>
+
+    <div class="node node--final">ПРИЛОЖЕНИЕ ЗАКРЫТО<small class="sub">данные готовы к следующему запуску</small></div>
+  </section>
+
+</main>
+
+<!-- ==================== ПОДВАЛ ==================== -->
+<footer class="page-footer">
+  <p>
+    «User Flow — Task Manager» · Часть 1 документации к приложению из Части 2 (папка <b>task-manager/</b>).<br>
+    Схема свёрстана на чистом HTML + CSS без JavaScript и canvas. При ширине окна менее 900&nbsp;px
+    колонки перестраиваются в вертикальную последовательность.
+  </p>
+</footer>
+
+<!-- ================================================================
+     ACCESSIBILITY: ТЕКСТОВАЯ РАСШИФРОВКА СХЕМЫ
+     Полное словесное описание каждого блока для экранных читалок
+     и всех, кому удобнее текстовая версия блок-схемы.
+     ================================================================
+
+     ОБЩИЕ ПРАВИЛА ОФОРМЛЕНИЯ
+     - Скруглённые зелёные «пилюли» — точки старта сценария.
+     - Синие закрашенные прямоугольники — экраны приложения.
+     - Голубые прямоугольники в контурной рамке — действия пользователя
+       либо результаты этих действий.
+     - Жёлто-оранжевые ромбы (повёрнутые на 45 градусов квадраты) —
+       точки принятия решений; из каждого ромба выходят две ветви:
+       «Да» (зелёная метка) и «Нет» (красная метка).
+     - Красные прямоугольники — ошибки и отрицательные исходы.
+     - Серые прямоугольники в контурной рамке — нейтральные исходы
+       («ничего не меняется»).
+     - Серые закрашенные «пилюли» — финальные точки.
+     - Тёмно-синий крупный прямоугольник — Главный экран (канбан-доска),
+       центральный узел всех сценариев.
+     - Сплошные стрелки — основной поток внутри сценария.
+     - Пунктирные стрелки — переходы между сценариями (вход из Главного
+       экрана и возврат на него).
+
+     КОЛОНКА 1. ЗАПУСК И ОНБОРДИНГ
+     1) СТАРТ: «Запуск приложения» — Electron создаёт main-процесс и окно.
+     2) Экран: «Загрузка данных» — из SQLite читаются список задач и настройки.
+     3) РЕШЕНИЕ: «Первый запуск?»
+        - ДА → Экран «Онбординг»: приветствие, выбор темы, подсказки
+          по интерфейсу. После завершения поток сливается с нижним узлом.
+        - НЕТ → Действие «Пропуск онбординга»: пользователь сразу попадает
+          к сохранённым задачам. Поток сливается с нижним узлом.
+     4) ГЛАВНЫЙ ЭКРАН — канбан-доска с колонками To Do, In Progress, Done.
+        Это центральный узел: из него начинаются сценарии 2–8.
+
+     КОЛОНКА 2. СОЗДАНИЕ ЗАДАЧИ
+     1) ВХОД: из Главного экрана по Ctrl+N или кнопке «+ Новая задача».
+     2) Экран «Форма задачи»: поля название, описание, дедлайн, приоритет
+        (low / medium / high), теги.
+     3) РЕШЕНИЕ: «Валидация пройдена?»
+        - ДА → Экран «Сохранение задачи» (через IPC-мост в main-процесс
+          и SQLite), затем действие «Карточка в колонке To Do», затем
+          возврат на Главный экран.
+        - НЕТ → Ошибка валидации: пустое название или дедлайн в прошлом.
+          Обратная петля: исправить поля и отправить форму снова.
+
+     КОЛОНКА 3. РЕДАКТИРОВАНИЕ ЗАДАЧИ
+     1) ВХОД: из Главного экрана по клику на карточку задачи.
+     2) Экран «Детали задачи»: просмотр всех полей и статуса.
+        Примечание: Esc закрывает окно без изменений.
+     3) Действие «Изменение полей»: название, описание, дедлайн,
+        приоритет, теги.
+     4) РЕШЕНИЕ: «Валидация пройдена?»
+        - ДА → Экран «Обновление в БД», затем действие «Карточка
+          обновлена», затем возврат на Главный экран.
+        - НЕТ → Ошибка «Изменения отклонены» с подсветкой некорректных
+          полей; обратная петля — исправить и сохранить снова.
+
+     КОЛОНКА 4. ИЗМЕНЕНИЕ СТАТУСА
+     1) ВХОД: из Главного экрана перетаскиванием карточки (drag & drop)
+        или кнопками смены статуса.
+     2) Действие: задача находится в статусе «To Do».
+     3) РЕШЕНИЕ: «Работа начата?»
+        - ДА → Экран «Перенос в In Progress» (событие dragEnd в dnd-kit).
+        - НЕТ → Нейтральный исход: остаётся в «To Do».
+        Ветви сливаются.
+     4) РЕШЕНИЕ: «Работа завершена?»
+        - ДА → Экран «Перенос в Done» — задача закрыта.
+        - НЕТ → Нейтральный исход: остаётся в «In Progress».
+        Ветви сливаются.
+     5) Действие «Сохранение статуса»: запись в SQLite, обновление
+        счётчиков колонок.
+     6) РЕШЕНИЕ: «Дедлайн близко?»
+        - ДА → Действие «Системное уведомление» (Electron Notification,
+          порог задаётся в настройках).
+        - НЕТ → Нейтральный исход: уведомление не требуется.
+        Ветви сливаются; возврат на Главный экран.
+
+     КОЛОНКА 5. УДАЛЕНИЕ ЗАДАЧИ
+     1) ВХОД: из Главного экрана командой «Удалить» в меню карточки.
+     2) Экран «Диалог подтверждения»: «Удалить задачу?» с кнопками
+        Удалить / Отмена.
+     3) РЕШЕНИЕ: «Подтверждено?»
+        - ДА → Экран «Удаление из БД», затем действие «Карточка исчезает
+          с доски», затем возврат на Главный экран.
+        - НЕТ → Действие «Отмена удаления»: карточка остаётся на месте;
+          возврат на Главный экран.
+
+     КОЛОНКА 6. ПОИСК И ФИЛЬТРАЦИЯ
+     1) ВХОД: из Главного экрана по Ctrl+F или клику в поле поиска.
+     2) Экран «Панель поиска»: текстовый запрос, фильтры по статусу,
+        приоритету, тегам и дате.
+     3) РЕШЕНИЕ: «Есть совпадения?»
+        - ДА → Действие «Отфильтрованная доска»: фильтрация в реальном
+          времени.
+        - НЕТ → Ошибка «Ничего не найдено» с предложением сбросить
+          фильтры. Ветви сливаются.
+     4) РЕШЕНИЕ: «Сбросить фильтры?»
+        - ДА → Действие «Показать все задачи».
+        - НЕТ → Нейтральный исход: фильтры остаются активными.
+        Ветви сливаются; возврат на Главный экран.
+
+     КОЛОНКА 7. НАСТРОЙКИ
+     1) ВХОД: из Главного экрана по Ctrl+, или через меню Edit → Settings.
+     2) Экран «Настройки» с разделами: Тема, Уведомления, Горячие клавиши.
+     3) Действие «Тема оформления»: светлая / тёмная / системная,
+        применяется мгновенно.
+     4) Действие «Уведомления дедлайнов»: включение/выключение,
+        порог от 1 до 24 часов.
+     5) Действие «Горячие клавиши»: Ctrl+N, Ctrl+F, Ctrl+,.
+     6) Экран «Сохранение настроек» в SQLite; изменения применяются
+        сразу. Возврат на Главный экран.
+
+     КОЛОНКА 8. ВЫХОД ИЗ ПРИЛОЖЕНИЯ
+     1) ВХОД: меню File → Quit или кнопка закрытия окна.
+     2) РЕШЕНИЕ: «Данные сохранены?»
+        - ДА → Нейтральный исход: база данных актуальна.
+        - НЕТ → Экран «Автосохранение»: дозапись буферов в SQLite.
+        Ветви сливаются.
+     3) Действие «Закрытие окна и процессов»: renderer → main → app.quit().
+     4) ФИНАЛ: «ПРИЛОЖЕНИЕ ЗАКРЫТО» — данные готовы к следующему запуску.
+     ================================================================ -->
+</body>
+</html>

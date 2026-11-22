@@ -1,0 +1,25 @@
+# Зависимости
+node_modules/
+
+# Сборочные артефакты
+dist/
+dist-electron/
+release/
+*.js.map
+
+# Локальные файлы и секреты
+.env
+.env.*
+!.env.example
+
+# Логи
+*.log
+npm-debug.log*
+
+# Тестовые отчёты
+test-results/
+playwright-report/
+
+# Системные файлы
+.DS_Store
+Thumbs.db

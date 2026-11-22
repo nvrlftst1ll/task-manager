@@ -1,0 +1,87 @@
+{
+  "name": "task-manager",
+  "productName": "Task Manager",
+  "version": "1.0.0",
+  "description": "Кроссплатформенный менеджер задач: Electron + React 18 + TypeScript + Zustand + better-sqlite3 (IPC)",
+  "private": true,
+  "main": "dist-electron/main.js",
+  "author": "Task Manager Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n RENDERER,MAIN,ELECTRON -c cyan,magenta,green \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:main": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --external:electron --external:better-sqlite3 --outdir=dist-electron --watch",
+    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "compile:electron": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --external:electron --external:better-sqlite3 --outdir=dist-electron",
+    "build": "npm run compile:electron && vite build",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts,.tsx --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"electron/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run tests/unit --reporter verbose",
+    "test:integration": "npm rebuild better-sqlite3 && vitest run tests/integration --reporter verbose",
+    "test:e2e": "npm run build && playwright test",
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
+    "better-sqlite3": "^11.10.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.17.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "playwright": "^1.49.1",
+    "prettier": "^3.4.2",
+    "typescript": "~5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.taskmanager.app",
+    "productName": "Task Manager",
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "user-flow.html",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "user-flow.html"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
