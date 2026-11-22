@@ -29,6 +29,13 @@
   (`--no-sandbox --disable-gpu --disable-dev-shm-usage`); локальный запуск
   не меняется.
 - `package-lock.json` закоммичен — CI ставит точные версии.
+- `workflow_dispatch` получил чекбокс `package` (boolean): ручной запуск
+  может собрать установщики без тега — условие job дополнено
+  `github.event.inputs.package == 'true'`; для Linux-упаковки добавлена
+  защитная установка libfuse2/libfuse2t64 (AppImage на Ubuntu 24.04).
+  Причина: пользователи запускали workflow вручную и ожидали установщики,
+  а jobs package/release пропускались (if-условие работает только от
+  тегов `v*.*.*`).
 
 ### Проверено
 

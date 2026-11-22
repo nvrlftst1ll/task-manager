@@ -37,7 +37,16 @@ on:
     tags: ["v*.*.*"] # тег запускает packaging + release
   pull_request:
     branches: [main]
-  workflow_dispatch: # ручной запуск из вкладки Actions
+  # Ручной запуск из вкладки Actions. По умолчанию — проверка кода
+  # и e2e без упаковки; чекбокс «package» форсирует job package даже
+  # без тега — установщики появятся как артефакты на странице прогона.
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Собрать установщики (3 ОС) даже без тега"
+        required: false
+        default: false
+        type: boolean
 
 # Новый push в ту же ветку/PR отменяет устаревший прогон
 concurrency:
@@ -235,7 +244,10 @@ jobs:
   package:
     name: "Package (${{ matrix.os }} → ${{ matrix.target }})"
     needs: [build, e2e] # пакеты собираем только после зелёного пайплайна
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Запуск по тегу v*.*.* ИЛИ с чекбоксом «package» при ручном запуске.
+    # Обычный push/PR и ручной запуск без чекбокса ПРОПУСКАЮТ упаковку:
+    # собирать 3 установщика на каждый коммит слишком дорого.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.package == 'true'
     strategy:
       fail-fast: false # mac не должна отменять win при падении
       matrix:
@@ -296,6 +308,12 @@ jobs:
       - name: Установка зависимостей (с пересборкой нативных модулей)
         run: npm install --no-audit --no-fund
 
+      # Ubuntu 24.04: таргету AppImage нужна libfuse2, которой нет
+      # в базовом образе раннера (на 24.04 пакет называется libfuse2t64)
+      - name: Установка libfuse2 (нужна для сборки AppImage)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && (sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64)
+
       - name: Сборка приложения
         run: npm run build
 
@@ -324,6 +342,9 @@ jobs:
   release:
     name: "GitHub Release (draft)"
     needs: package
+    # Релиз привязан к тегу: у черновика релиза должен быть номер версии.
+    # При ручном запуске с чекбоксом package (без тега) установщики
+    # доступны как артефакты прогона — релиз не создаётся.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
