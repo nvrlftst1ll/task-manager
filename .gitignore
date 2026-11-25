@@ -23,3 +23,8 @@ playwright-report/
 # Системные файлы
 .DS_Store
 Thumbs.db
+
+
+
+# Контекстные файлы
+context/
